@@ -9,6 +9,8 @@
 
 List any resources used here, or simply put `N/A` if not applicable.
 
+// https://firebase.google.com/docs/firestore/manage-data/delete-data#java
+
 ## Verbal Collaboration
 
 | Student Name | CCID     |
