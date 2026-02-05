@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 public class MainActivity extends AppCompatActivity implements CityDialogFragment.CityDialogListener {
+    // functionality for the delete which I added uses select->delete button, as in prev assignment
     private FirebaseFirestore db;
     private CollectionReference citiesRef;
     private Button addCityButton, deleteCityButton;
