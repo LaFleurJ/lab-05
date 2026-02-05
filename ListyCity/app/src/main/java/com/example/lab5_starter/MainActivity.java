@@ -7,11 +7,13 @@ import android.widget.Button;
 import android.widget.ListView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
@@ -24,11 +26,13 @@ import java.util.ResourceBundle;
 public class MainActivity extends AppCompatActivity implements CityDialogFragment.CityDialogListener {
     private FirebaseFirestore db;
     private CollectionReference citiesRef;
-    private Button addCityButton;
+    private Button addCityButton, deleteCityButton;
     private ListView cityListView;
 
     private ArrayList<City> cityArrayList;
     private ArrayAdapter<City> cityArrayAdapter;
+    private City selectedCity;
+    private int selectedPosition = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
 
         // Set views
         addCityButton = findViewById(R.id.buttonAddCity);
+        deleteCityButton = findViewById(R.id.buttonDeleteCity);
         cityListView = findViewById(R.id.listviewCities);
 
         // create city array
@@ -58,11 +63,23 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
             cityDialogFragment.show(getSupportFragmentManager(),"Add City");
         });
 
-        cityListView.setOnItemClickListener((adapterView, view, i, l) -> {
-            City city = cityArrayAdapter.getItem(i);
-            CityDialogFragment cityDialogFragment = CityDialogFragment.newInstance(city);
-            cityDialogFragment.show(getSupportFragmentManager(),"City Details");
+        deleteCityButton.setOnClickListener(view -> {
+            if (selectedCity != null) {
+                deleteCity(selectedCity);
+                selectedCity = null; //clear selection after delete
+                selectedPosition = -1;
+                cityListView.clearChoices();
+                cityArrayAdapter.notifyDataSetChanged();
+            } else {
+                Log.w("MainActivity", "No city selected to delete");
+            }
         });
+        cityListView.setOnItemClickListener((adapterView, view, position, id) -> {
+            selectedCity = cityArrayAdapter.getItem(position);
+            selectedPosition = position;
+            cityListView.setItemChecked(position, true);
+        });
+
         db = FirebaseFirestore.getInstance();
         citiesRef = db.collection("cities");
 
@@ -78,6 +95,9 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
 
                     cityArrayList.add(new City(name, province));
                 }
+                selectedCity = null;
+                selectedPosition = -1;
+                cityListView.clearChoices();
                 cityArrayAdapter.notifyDataSetChanged();
             }
         });
@@ -106,6 +126,28 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
             }
         });
             }
+    public void deleteCity(City city) {
+        // I looked at the documentation for Firebase
+        // https://firebase.google.com/docs/firestore/manage-data/delete-data#java
+        cityArrayList.remove(city);
+        cityArrayAdapter.notifyDataSetChanged();
+
+        citiesRef.document(city.getName())
+                .delete()
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d("Firestore", "DocumentSnapshot successfully deleted!");
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w("Firestore", "Error deleting document", e);
+                    }
+                });
+    }
+
 
     public void addDummyData(){
         City m1 = new City("Edmonton", "AB");
